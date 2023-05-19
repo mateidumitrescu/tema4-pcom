@@ -145,31 +145,36 @@ char* compute_get_request_aux(const char* host, const char* url, const char* que
 char *compute_post_request_aux(char *host, char *url, char* content_type, std::string body_data,
                             std::string cookies)
 {
-    char* message = new char[BUFLEN];
-    char* line = new char[LINELEN];
+    char *message = (char*) calloc(BUFLEN, sizeof(char));
+    char *line = (char*) calloc(LINELEN, sizeof(char));
 
-    snprintf(line, LINELEN, "POST %s HTTP/1.1", url);
-    strcat(message, line);
+    // Step 1: write the method name, URL and protocol type
+    sprintf(line, "POST %s HTTP/1.1", url);
+    compute_message(message, line);
+    
+    // Step 2: add the host
+    sprintf(line, "HOST: %s", host);
+    compute_message(message,line);
+    /* Step 3: add necessary headers (Content-Type and Content-Length are mandatory)
+            in order to write Content-Length you must first compute the message size
+    */
 
-    snprintf(line, LINELEN, "HOST: %s", host);
-    strcat(message, line);
-
-    if (!cookies.empty()) {
-        snprintf(line, LINELEN, "Authorization: Bearer %s", cookies.c_str());
-        strcat(message, line);
+    if (cookies != "") {
+        // we don't use cookies at POST requests, just Tokens
+        sprintf(line, "Authorization: Bearer %s", cookies.c_str());
+        compute_message(message, line);
     }
 
     std::string content = "Content-Type: ";
     content += content_type;
-    strcat(message, content.c_str());
+    compute_message(message, (char*) content.c_str());
+    sprintf(line,"Content-Length: %d", body_data.size());
+    compute_message(message,line);
+    compute_message(message, "");
+    sprintf(line, (char*) body_data.c_str());
+    compute_message(message, line);
 
-    snprintf(line, LINELEN, "Content-Length: %zu", body_data.size());
-    strcat(message, line);
-
-    strcat(message, "");
-    strcat(message, body_data.c_str());
-
-    delete[] line;
+    free(line);
     return message;
 }
 
