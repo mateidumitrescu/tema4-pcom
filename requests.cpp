@@ -1,4 +1,6 @@
 #include "requests.h"
+#include <iostream>
+#include <string>
 #include "helpers.h"
 #include <arpa/inet.h>
 #include <netdb.h>      /* struct hostent, gethostbyname */
@@ -106,3 +108,37 @@ char *compute_post_request(char *host, char *url, char *content_type,
   free(body_data_buffer);
   return message;
 }
+
+char* compute_get_request_aux(const char* host, const char* url, const char* query_params,
+                            char** cookies, int cookie_type)
+{
+    char* message = (char*) calloc(BUFLEN, sizeof(char));
+    char* line = (char*) calloc(LINELEN, sizeof(char));
+
+    if (query_params != nullptr) {
+        snprintf(line, LINELEN, "GET %s?%s HTTP/1.1", url, query_params);
+    } else {
+        snprintf(line, LINELEN, "GET %s HTTP/1.1", url);
+    }
+
+    compute_message(message, line);
+
+    snprintf(line, LINELEN, "HOST: %s", host);
+    compute_message(message, line);
+
+    if (cookies != nullptr) {
+        if (cookie_type == 1) {
+            // we have cookie
+            snprintf(line, LINELEN, "Cookie: %s;", *cookies);
+        } else {
+            // we have token
+            snprintf(line, LINELEN, "Authorization: Bearer %s", *cookies);
+        }
+
+        compute_message(message, line);
+    }
+
+    compute_message(message, "");
+    return message;
+}
+

@@ -7,6 +7,7 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <string>
 
 #include "helpers.h"
 #include "buffer.h"
@@ -22,7 +23,7 @@ using JSON = nlohmann::json;
 #define ROUTE_LOGIN "/api/v1/tema/auth/login"
 #define ROUTE_LIBRARY_ACCESS "/api/v1/tema/library/access"
 #define ROUTE_BOOKS_ACCESS "/api/v1/tema/library/books"
-#define ROUTE_BOOK_ACCESS "/api/v1/tema/library/books/:bookId."
+#define ROUTE_BOOK_ACCESS "/api/v1/tema/library/books/"
 #define PAYLOAD_TYPE "application/json"
 
 #define GET_COMMAND 1
@@ -35,12 +36,17 @@ void start_register();
 
 /*function to login*/
 void start_login(int &authenticated, std::string &cookie,
-                std::string &token);
+                std::string &token, int &library_in);
 
 /*function to enter library*/
 void enter_library(int &authenticated, std::string &cookie,
                   std::string &token, int &library_in);
 
+/*function to get books in library*/
+void get_books(std::string &token, int &library_in);
+
+/*function to get book in library*/
+void get_book(std::string &token, int &library_in);
 
 int main() {
     char command[105];
@@ -60,9 +66,13 @@ int main() {
         } else if (strcmp(command, "register") == 0) {
             start_register();
         } else if (strcmp(command, "login") == 0) {
-            start_login(authenticated, cookie, token);
+            start_login(authenticated, cookie, token, library_in);
         } else if (strcmp(command, "enter_library") == 0) {
             enter_library(authenticated, cookie, token, library_in);
+        } else if (strcmp(command, "get_books") == 0) {
+            get_books(token, library_in);
+        } else if (strcmp(command, "get_book") == 0) {
+            get_book(token, library_in);
         }
 
     }
@@ -113,7 +123,7 @@ void start_register() {
 }
 
 void start_login(int &authenticated, std::string &cookie,
-                std::string &token) {
+                std::string &token, int &library_in) {
     std::string username;
     std::string password;
 
@@ -155,6 +165,7 @@ void start_login(int &authenticated, std::string &cookie,
         cookie = response.substr(first, last - first);
         authenticated = TRUE;
         token.clear();
+        library_in = FALSE;
     }
     close(sockfd);
 }
@@ -193,4 +204,86 @@ void enter_library(int &authenticated, std::string &cookie,
         library_in = TRUE;
     }
     close(sockfd);
+}
+
+void get_books(std::string &token, int &library_in) {
+    int sockfd = open_connection((char *)HOST, PORT,
+                                 AF_INET, SOCK_STREAM, 0);
+    char **TOKEN = new char*[1];
+    TOKEN[0] = new char[token.length() + 1];
+    std::strcpy(TOKEN[0], token.c_str());
+    char *message = compute_get_request_aux((char *)HOST,
+                                        (char *)ROUTE_BOOKS_ACCESS,
+                                        NULL, TOKEN, 2);
+    delete[] TOKEN[0];
+    delete[] TOKEN;
+    
+
+    send_to_server(sockfd, message);
+    std::string response = receive_from_server(sockfd);
+    std::string resp = response.substr(9, 3);
+    std::string books;
+    if (resp == "200") {
+        /*list of books*/
+        int first, last;
+        first = response.find("[");
+        last = response.find("]") + 1;
+        books = response.substr(first, last - first);
+        std::cout << books;
+    } else if (!library_in) {
+        std::cout << "Library not accessed yet. Enter library first.\n";
+    } else if (resp == "403") {
+        std::cout << "Missing authorization header.\n";
+    }
+    std::cout << "\n";
+    close(sockfd);
+}
+
+void get_book(std::string &token, int &library_in) {
+    std::cout << "id=";
+    std::string id;
+    std::cin >> id;
+    int sockfd = open_connection((char *)HOST, PORT,
+                                 AF_INET, SOCK_STREAM, 0);
+    /* getting complete route of book access*/
+    std::string route = ROUTE_BOOK_ACCESS + id;
+
+    char **TOKEN = new char*[1];
+    TOKEN[0] = new char[token.length() + 1];
+    std::strcpy(TOKEN[0], token.c_str());
+
+    char **ROUTE = new char*[1];
+    ROUTE[0] = new char[route.length() + 1];
+    std::strcpy(ROUTE[0], route.c_str());
+
+    char *message = compute_get_request_aux((char *)HOST,
+                                        ROUTE[0],
+                                        NULL, TOKEN, 2);
+    delete[] ROUTE[0];
+    delete[] ROUTE;
+    delete[] TOKEN[0];
+    delete[] TOKEN;
+
+    send_to_server(sockfd, message);
+    std::string response = receive_from_server(sockfd);
+    std::string resp = response.substr(9, 3);
+    std::string book;
+
+    if (resp == "200") {
+        int first;
+        int last;
+        first = response.find("{");
+        last = response.find("}") + 1;
+        book = response.substr(first, last - first);
+        
+        std:: cout << book << "\n";
+    } else if (!library_in) {
+        std:: cout << "Library not accessed yet. Enter library first.\n";
+    } else if (resp == "403") {
+        std:: cout << "Missing authorization header.\n";
+    } else if (resp == "404") {
+        std:: cout << "No book with " << id << " id was found.\n";
+    }
+    close(sockfd);
+
 }

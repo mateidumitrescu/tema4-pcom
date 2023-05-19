@@ -1,4 +1,4 @@
-CC=g++
+CC=g++ -g
 CFLAGS=-I.
 
 client: client.cpp requests.cpp helpers.cpp buffer.cpp
