@@ -1,6 +1,8 @@
 #ifndef _REQUESTS_
 #define _REQUESTS_
 
+#include <string>
+
 // computes and returns a GET request string (query_params
 // and cookies can be set to NULL if not needed)
 char *compute_get_request(char *host, char *url, char *query_params,
@@ -12,4 +14,7 @@ char *compute_post_request(char *host, char *url, char* content_type, char **bod
 
 char* compute_get_request_aux(const char* host, const char* url, const char* query_params,
                             char** cookies, int cookie_type);
+
+char *compute_post_request_aux(char *host, char *url, char* content_type, std::string body_data,
+                            std::string cookies);
 #endif

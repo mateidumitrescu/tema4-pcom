@@ -48,6 +48,9 @@ void get_books(std::string &token, int &library_in);
 /*function to get book in library*/
 void get_book(std::string &token, int &library_in);
 
+/*function to add a book in library*/
+void add_book(std::string &token, int &library_in);
+
 int main() {
     char command[105];
     int authenticated;
@@ -73,6 +76,8 @@ int main() {
             get_books(token, library_in);
         } else if (strcmp(command, "get_book") == 0) {
             get_book(token, library_in);
+        } else if (strcmp(command, "add_book") == 0) {
+            add_book(token, library_in);
         }
 
     }
@@ -286,4 +291,79 @@ void get_book(std::string &token, int &library_in) {
     }
     close(sockfd);
 
+}
+
+void add_book(std::string &token, int &library_in) {
+    std::cout << "title=";
+    std::string title;
+    std::cin >> title;
+
+    std::cout << "author=";
+    std::string author;
+    std::cin >> author;
+
+	std::cout << "genre=";
+    std::string genre;
+    std::cin >> genre;
+
+	std::cout << "publisher=";
+    std::string publisher;
+    std::cin >> publisher;
+
+    std::cout << "page_count=";
+    std::string page_count;
+    std::cin >> page_count;
+
+    int valid_page_count = TRUE;
+    if (page_count[0] == '-') {
+        valid_page_count = FALSE;
+    }
+
+    int size = page_count.length();
+    for (int i = 0; i < size; i++) {
+        if ((int) page_count[i] < 48 || (int) page_count[i] > 57) {
+            valid_page_count = FALSE;
+            break;
+        }
+    }
+
+    if (!valid_page_count) {
+        std::cout << "Page count should be an unsigned integer.\n";
+        return;
+    }
+    JSON jmsg;
+    jmsg["title"] = title;
+    jmsg["author"] = author;
+    jmsg["genre"] = genre;
+    jmsg["publisher"] = publisher;
+    jmsg["page_count"] = page_count;
+
+    int sockfd = open_connection((char *)HOST, PORT,
+                                 AF_INET, SOCK_STREAM, 0);
+
+    std::string info = jmsg.dump();
+
+    char *message = compute_post_request_aux((char*) HOST, (char*) ROUTE_BOOKS_ACCESS,
+    			(char*) PAYLOAD_TYPE, info, token);
+
+
+    send_to_server(sockfd, message);
+    std::string response;
+    std::string resp;
+
+    response = receive_from_server(sockfd);
+    resp = response.substr(9, 3);
+
+    if (resp == "200") {
+        std::cout << "Book " << title << " added to library.\n";
+    }else if (!library_in) {
+        std:: cout << "Library not accessed yet. Enter library first.\n";
+    } else if (resp == "403") {
+        std::cout << "Missing authorization header.\n";
+    } else if (resp == "500") {
+        std:: cout << "Token not decoded.\n";
+    } else if (resp == "429") {
+        std::cout << "Too many requests, try again.\n";
+    }
+    close(sockfd);
 }
