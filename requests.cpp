@@ -174,3 +174,35 @@ char *compute_post_request_aux(char *host, char *url, char* content_type, std::s
     return message;
 }
 
+char *compute_delete_request(char *host, char *url, char *query_params,
+                            std::string cookies, int cookie_type)
+{
+    char* message = (char*)calloc(BUFLEN, sizeof(char));
+    char* line = (char*)calloc(LINELEN, sizeof(char));
+
+    if (query_params != NULL) {
+        snprintf(line, LINELEN, "DELETE %s?%s HTTP/1.1", url, query_params);
+    }
+    else {
+        snprintf(line, LINELEN, "DELETE %s HTTP/1.1", url);
+    }
+    compute_message(message, line);
+
+    snprintf(line, LINELEN, "HOST: %s", host);
+    compute_message(message, line);
+
+    if (!cookies.empty()) {
+        if (cookie_type == 1) {
+            snprintf(line, LINELEN, "Cookie: %s;", cookies.c_str());
+        }
+        else {
+            snprintf(line, LINELEN, "Authorization: Bearer %s", cookies.c_str());
+        }
+        compute_message(message, line);
+    }
+
+    compute_message(message, "");
+
+    return message;
+}
+

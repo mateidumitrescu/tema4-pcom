@@ -17,4 +17,7 @@ char* compute_get_request_aux(const char* host, const char* url, const char* que
 
 char *compute_post_request_aux(char *host, char *url, char* content_type, std::string body_data,
                             std::string cookies);
+
+char *compute_delete_request(char *host, char *url, char *query_params,
+                            std::string cookies, int cookie_type);
 #endif

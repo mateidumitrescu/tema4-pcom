@@ -24,6 +24,7 @@ using JSON = nlohmann::json;
 #define ROUTE_LIBRARY_ACCESS "/api/v1/tema/library/access"
 #define ROUTE_BOOKS_ACCESS "/api/v1/tema/library/books"
 #define ROUTE_BOOK_ACCESS "/api/v1/tema/library/books/"
+#define ROUTE_LOGOUT "/api/v1/tema/auth/logout"
 #define PAYLOAD_TYPE "application/json"
 
 #define GET_COMMAND 1
@@ -50,6 +51,13 @@ void get_book(std::string &token, int &library_in);
 
 /*function to add a book in library*/
 void add_book(std::string &token, int &library_in);
+
+/*function to delete a book from library*/
+void delete_book(std::string &token, int &library_in);
+
+/*function to logout user from server*/
+void logout(std::string &cookie, std::string &token,
+            int &authenticated, int &library_in);
 
 int main() {
     char command[105];
@@ -78,9 +86,18 @@ int main() {
             get_book(token, library_in);
         } else if (strcmp(command, "add_book") == 0) {
             add_book(token, library_in);
+        } else if (strcmp(command, "delete_book") == 0) {
+            delete_book(token, library_in);
+        } else if (strcmp(command, "logout") == 0) {
+            logout(cookie, token, authenticated, library_in);
+        } else if (strcmp(command, "exit") == 0) {
+            return 0;
+        } else {
+            std::cout << "Command is unknown, try other command.\n";
         }
-
     }
+
+    return 0;
 }
 
 void start_register() {
@@ -240,7 +257,6 @@ void get_books(std::string &token, int &library_in) {
     } else if (resp == "403") {
         std::cout << "Missing authorization header.\n";
     }
-    std::cout << "\n";
     close(sockfd);
 }
 
@@ -364,6 +380,83 @@ void add_book(std::string &token, int &library_in) {
         std:: cout << "Token not decoded.\n";
     } else if (resp == "429") {
         std::cout << "Too many requests, try again.\n";
+    }
+    close(sockfd);
+}
+
+void delete_book(std::string &token, int &library_in) {
+    std::string id;
+    std::string route;
+    route = ROUTE_BOOK_ACCESS;
+    std::cout << "id=";
+    std::cin >> id;
+
+    /*getting full route of book*/
+    route += id;
+
+    int sockfd;
+    sockfd = open_connection((char *)HOST, PORT,
+                                 AF_INET, SOCK_STREAM, 0);
+    char *message;
+    message = compute_delete_request((char *)HOST, (char *)route.c_str(),
+                                     NULL, token, 2);
+
+    send_to_server(sockfd, message);
+    std::string response;
+    std::string resp;
+
+    response = receive_from_server(sockfd);
+    resp = response.substr(9, 3);
+
+    if (resp == "200") {
+        std:: cout << id << " book was deleted.\n";
+    } else if (!library_in) {
+        std:: cout << "Library not accessed yet. Enter library first.\n";
+    } else if (resp == "403") {
+        std:: cout << "Missing authorization header.\n";
+    } else if (resp == "404") {
+        std:: cout << "No book with id " << id << " was found.\n";
+    }
+    close(sockfd);
+}
+
+void logout(std::string &cookie, std::string &token,
+            int &authenticated, int &library_in) {
+    int sockfd;
+    char *message;
+    sockfd = open_connection((char *)HOST, PORT,
+                            AF_INET, SOCK_STREAM, 0);
+    
+    /*converting std::string to char** */
+    char **cookies = new char*[1];
+    cookies[0] = new char[cookie.length() + 1];
+    std::strcpy(cookies[0], cookie.c_str());
+
+    message = compute_get_request((char *)HOST, (char *)ROUTE_LOGOUT,
+                                   NULL, cookies, 1);
+
+    delete[] cookies[0];
+    delete[] cookies;
+
+    send_to_server(sockfd, message);
+    std::string response;
+    std::string resp;
+
+    response = receive_from_server(sockfd);
+    resp = response.substr(9, 3);
+
+    if (resp == "200") {
+        authenticated = FALSE;
+        library_in = FALSE;
+        cookie.clear();
+        token.clear();
+        std::cout << "Succesfully logged out from server.\n";
+    } else if (!authenticated) {
+        std::cout << "No user is logged in.\n";
+    } else if (resp == "403") {
+        std:: cout << "Missing authorization header.\n";
+    } else if (resp == "429") {
+        std:: cout << "Too many requests, try again later.\n";
     }
     close(sockfd);
 }
