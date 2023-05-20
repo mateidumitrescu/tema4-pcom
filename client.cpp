@@ -27,10 +27,14 @@ using JSON = nlohmann::json;
 #define ROUTE_LOGOUT "/api/v1/tema/auth/logout"
 #define PAYLOAD_TYPE "application/json"
 
+
+#define MAX_LEN 125
 #define GET_COMMAND 1
 #define NO_COOKIE ""
 #define TRUE 1
 #define FALSE 0
+
+using namespace std;
 
 /*function to register*/
 void start_register();
@@ -60,7 +64,7 @@ void logout(std::string &cookie, std::string &token,
             int &authenticated, int &library_in);
 
 int main() {
-    char command[105];
+    char command[MAX_LEN];
     int authenticated;
     int library_in;
 
@@ -71,7 +75,8 @@ int main() {
     std::string token;
 
     while (GET_COMMAND) {
-        std::cin >> command;
+        fgets(command, MAX_LEN, stdin);
+        command[strlen(command) - 1] = '\0';
         if (strcmp(command, "exit") == 0) {
             break;
         } else if (strcmp(command, "register") == 0) {
@@ -101,14 +106,14 @@ int main() {
 }
 
 void start_register() {
-    std::string username;
-    std::string password;
+    char username[MAX_LEN];
+    char password[MAX_LEN];
 
     std::cout << "username=";
-    std::cin >> username;
+    fgets(username, MAX_LEN, stdin);
 
     std::cout << "password=";
-    std::cin >> password;
+    fgets(password, MAX_LEN, stdin);
 
     JSON jmsg;
     jmsg["username"] = username;
@@ -116,17 +121,24 @@ void start_register() {
 
     int sockfd = open_connection((char *)HOST, PORT, AF_INET, SOCK_STREAM, 0);
 
-    char *message;
+    char *message = NULL;
     std::string info = jmsg.dump();
-    char *infos = (char *) malloc(info.size() + 1);
+    char *infos = new char[info.size() + 1];
     char *credentials[1];
-    strcpy(infos, info.c_str());
-    credentials[0] = (char *) malloc(strlen(infos) + 1);
-    strcpy(credentials[0], infos);
+
+    std::strcpy(infos, info.c_str());
+    credentials[0] = new char[std::strlen(infos) + 1];
+    std::strcpy(credentials[0], infos);
+
+    message = credentials[0];
+
     message = compute_post_request((char *)HOST, (char *)ROUTE_REGISTER,
                                    (char *)PAYLOAD_TYPE,
                                    credentials, 1, NULL, 0);
     
+    delete[] infos;
+    delete[] credentials[0];
+
     send_to_server(sockfd, message);
     std::string response = receive_from_server(sockfd);
     std::string resp = response.substr(9, 3);
@@ -139,37 +151,41 @@ void start_register() {
         std::cout << "Register succesfully.\n";
     }
 
-    free(infos);
-    free(credentials[0]);
     close(sockfd);
 }
 
 void start_login(int &authenticated, std::string &cookie,
                 std::string &token, int &library_in) {
-    std::string username;
-    std::string password;
+    char username[MAX_LEN];
+    char password[MAX_LEN];
 
     std::cout << "username=";
-    std::cin >> username;
+    fgets(username, MAX_LEN, stdin);
 
     std::cout << "password=";
-    std::cin >> password;
+    fgets(password, MAX_LEN, stdin);
 
     JSON jmsg;
     jmsg["username"] = username;
     jmsg["password"] = password;
 
     int sockfd = open_connection((char *)HOST, PORT, AF_INET, SOCK_STREAM, 0);
-    char *message;
+    char *message = NULL;
     std::string info = jmsg.dump();
-    char *infos = (char *) malloc(info.size() + 1);
+    char *infos = new char[info.size() + 1];
     char *credentials[1];
-    strcpy(infos, info.c_str());
-    credentials[0] = (char *) malloc(strlen(infos) + 1);
-    strcpy(credentials[0], infos);
+
+    std::strcpy(infos, info.c_str());
+    credentials[0] = new char[std::strlen(infos) + 1];
+    std::strcpy(credentials[0], infos);
+
+    message = credentials[0];
     message = compute_post_request((char *)HOST, (char *)ROUTE_LOGIN,
                                    (char *)PAYLOAD_TYPE,
                                    credentials, 1, NULL, 0);
+    
+    delete[] infos;
+
     send_to_server(sockfd, message);
     std::string response = receive_from_server(sockfd);
     std::string resp = response.substr(9, 3);
@@ -252,6 +268,8 @@ void get_books(std::string &token, int &library_in) {
         last = response.find("]") + 1;
         books = response.substr(first, last - first);
         std::cout << books;
+        std::cout << "\n";
+
     } else if (!library_in) {
         std::cout << "Library not accessed yet. Enter library first.\n";
     } else if (resp == "403") {
@@ -261,27 +279,28 @@ void get_books(std::string &token, int &library_in) {
 }
 
 void get_book(std::string &token, int &library_in) {
+    char id[MAX_LEN];
+    char route[MAX_LEN];
+    strcpy(route, ROUTE_BOOK_ACCESS);
     std::cout << "id=";
-    std::string id;
-    std::cin >> id;
+    fgets(id, MAX_LEN, stdin);
+
+    id[strlen(id) - 1] = '\0';
+
+
+    /*getting full route of book*/
+    strcat(route, id);
     int sockfd = open_connection((char *)HOST, PORT,
                                  AF_INET, SOCK_STREAM, 0);
-    /* getting complete route of book access*/
-    std::string route = ROUTE_BOOK_ACCESS + id;
 
     char **TOKEN = new char*[1];
     TOKEN[0] = new char[token.length() + 1];
     std::strcpy(TOKEN[0], token.c_str());
 
-    char **ROUTE = new char*[1];
-    ROUTE[0] = new char[route.length() + 1];
-    std::strcpy(ROUTE[0], route.c_str());
-
     char *message = compute_get_request_aux((char *)HOST,
-                                        ROUTE[0],
+                                        route,
                                         NULL, TOKEN, 2);
-    delete[] ROUTE[0];
-    delete[] ROUTE;
+
     delete[] TOKEN[0];
     delete[] TOKEN;
 
@@ -311,32 +330,39 @@ void get_book(std::string &token, int &library_in) {
 
 void add_book(std::string &token, int &library_in) {
     std::cout << "title=";
-    std::string title;
-    std::cin >> title;
+    char title[MAX_LEN];
+    fgets(title, MAX_LEN, stdin);
 
     std::cout << "author=";
-    std::string author;
-    std::cin >> author;
+    char author[MAX_LEN];
+    fgets(author, MAX_LEN, stdin);
 
 	std::cout << "genre=";
-    std::string genre;
-    std::cin >> genre;
+    char genre[MAX_LEN];
+    fgets(genre, MAX_LEN, stdin);
 
 	std::cout << "publisher=";
-    std::string publisher;
-    std::cin >> publisher;
+    char publisher[MAX_LEN];
+    fgets(publisher, MAX_LEN, stdin);
 
     std::cout << "page_count=";
-    std::string page_count;
-    std::cin >> page_count;
+    char page_count[MAX_LEN];
+    fgets(page_count, MAX_LEN, stdin);
+
+    title[strlen(title) - 1] = '\0';
+    author[strlen(author) - 1] = '\0';
+    genre[strlen(genre) - 1] = '\0';
+    publisher[strlen(publisher) - 1] = '\0';
+    page_count[strlen(page_count) - 1] = '\0';
+
 
     int valid_page_count = TRUE;
     if (page_count[0] == '-') {
         valid_page_count = FALSE;
     }
 
-    int size = page_count.length();
-    for (int i = 0; i < size; i++) {
+    
+    for (long unsigned int i = 0; i < strlen(page_count); i++) {
         if ((int) page_count[i] < 48 || (int) page_count[i] > 57) {
             valid_page_count = FALSE;
             break;
@@ -348,11 +374,13 @@ void add_book(std::string &token, int &library_in) {
         return;
     }
     JSON jmsg;
-    jmsg["title"] = title;
+    string title_string = string(title);
+
+    jmsg["publisher"] = publisher;
     jmsg["author"] = author;
     jmsg["genre"] = genre;
-    jmsg["publisher"] = publisher;
     jmsg["page_count"] = page_count;
+    jmsg["title"] = title_string;
 
     int sockfd = open_connection((char *)HOST, PORT,
                                  AF_INET, SOCK_STREAM, 0);
@@ -385,20 +413,23 @@ void add_book(std::string &token, int &library_in) {
 }
 
 void delete_book(std::string &token, int &library_in) {
-    std::string id;
-    std::string route;
-    route = ROUTE_BOOK_ACCESS;
+    char id[MAX_LEN];
+    char route[MAX_LEN];
+    strcpy(route, ROUTE_BOOK_ACCESS);
     std::cout << "id=";
-    std::cin >> id;
+    fgets(id, MAX_LEN, stdin);
+
+    id[strlen(id) - 1] = '\0';
+
 
     /*getting full route of book*/
-    route += id;
+    strcat(route, id);
 
     int sockfd;
     sockfd = open_connection((char *)HOST, PORT,
                                  AF_INET, SOCK_STREAM, 0);
     char *message;
-    message = compute_delete_request((char *)HOST, (char *)route.c_str(),
+    message = compute_delete_request((char *)HOST, route,
                                      NULL, token, 2);
 
     send_to_server(sockfd, message);
@@ -409,7 +440,7 @@ void delete_book(std::string &token, int &library_in) {
     resp = response.substr(9, 3);
 
     if (resp == "200") {
-        std:: cout << id << " book was deleted.\n";
+        std:: cout << "Book was deleted.\n";
     } else if (!library_in) {
         std:: cout << "Library not accessed yet. Enter library first.\n";
     } else if (resp == "403") {
