@@ -115,6 +115,20 @@ void start_register() {
     std::cout << "password=";
     fgets(password, MAX_LEN, stdin);
 
+    for (long unsigned int i = 0; i < strlen(username); i++) {
+        if (username[i] == ' ') {
+            std::cout << "Username and password should not contain spaces.\n";
+            return;
+        }
+    }
+
+    for (long unsigned int i = 0; i < strlen(password); i++) {
+        if (password[i] == ' ') {
+            std::cout << "Username and password should not contain spaces.\n";
+            return;
+        }
+    }
+
     JSON jmsg;
     jmsg["username"] = username;
     jmsg["password"] = password;
@@ -165,6 +179,20 @@ void start_login(int &authenticated, std::string &cookie,
 
     std::cout << "password=";
     fgets(password, MAX_LEN, stdin);
+
+    for (long unsigned int i = 0; i < strlen(username); i++) {
+        if (username[i] == ' ') {
+            std::cout << "Username and password should not contain spaces.\n";
+            return;
+        }
+    }
+
+    for (long unsigned int i = 0; i < strlen(password); i++) {
+        if (password[i] == ' ') {
+            std::cout << "Username and password should not contain spaces.\n";
+            return;
+        }
+    }
 
     JSON jmsg;
     jmsg["username"] = username;
