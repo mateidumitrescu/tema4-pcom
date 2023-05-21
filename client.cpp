@@ -1,3 +1,5 @@
+/* Copyright Dumitrescu Rares - Matei 321CA, anul 2, CTI*/
+
 #include <iostream>
 #include <stdio.h>
 #include <string.h>

@@ -1,0 +1,39 @@
+// Dumitrescu Rares Matei, 321CA, Tema4 PCOM
+
+Pentru implementarea acestei teme, am folosit scheletul
+laboratorului 9.
+Rezolvarea propriu-zisa se afla in fisierul client.cpp
+Pe langa functiile compute_get_request si compute_post_request
+am mai creat alte 2 functii compute_get_request_aux si 
+compute_post_request_aux, deoarece am avut probleme la anumite
+comenzi si nu am reusit sa le folosesc pe primele. De asemenea, 
+pentru comanda delete_book am creat functia compute_delete_request
+care este la fel ca compute_get_request, doar ca difera tipul mesajului,
+(din GET in DELETE).
+
+Am ales sa folosesc limbajul c++ pentru rezolvare, deoarece mi-a fost
+mai usor sa folosesc biblioteca nholman pentru parsarea JSON-urilor.
+
+In main() introduc fiecare comanda cu ajutorul unui while(1) pana
+cand este introdusa comanda exit. Pentru fiecare comanda, deschid socket
+ul si il inchid dupa fiecare functie pentru a comunica cu serverul si pentru
+a prelucra mesajele primite de la acesta.
+
+In fiecare functie, verific codul primit de la server si afisez un mesaj
+sugestiv in functie de cod. Pentru extragerea JWT ului si al Cookie ului
+am folosit functia substr(9, 3) dupa ce am observat in ce parte se afla
+in raspunsul de la server.
+
+Pentru parsarea JSON urilor am folosit functia dump().
+
+Pentru a retine in program mereu daca clientul este logat sau daca are 
+acces la biblioteca am folosit 2 variabile de tip int (authenticated si 
+library_in) si le trimit adresa acestora mereu in functiile unde este
+nevoie de ele. La logout se seteaza la 0, iar token ul si cookie ul
+se reseteaza.
+
+In concluzie, tema a fost una interesanta, mi-a facut placere sa o rezolv.
+
+PS: Doresc sa mi se corecteze tema manual daca sunt anumite erori la
+rularea checker-ului, deoarece consider ca am implementat fiecare
+comanda cum trebuie.
