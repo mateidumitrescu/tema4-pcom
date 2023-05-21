@@ -152,6 +152,7 @@ void start_register() {
     }
 
     close(sockfd);
+    std::cout << std::flush;
 }
 
 void start_login(int &authenticated, std::string &cookie,
@@ -206,6 +207,7 @@ void start_login(int &authenticated, std::string &cookie,
         library_in = FALSE;
     }
     close(sockfd);
+    std::cout << std::flush;
 }
 
 void enter_library(int &authenticated, std::string &cookie,
@@ -242,6 +244,7 @@ void enter_library(int &authenticated, std::string &cookie,
         library_in = TRUE;
     }
     close(sockfd);
+    std::cout << std::flush;
 }
 
 void get_books(std::string &token, int &library_in) {
@@ -276,6 +279,7 @@ void get_books(std::string &token, int &library_in) {
         std::cout << "Missing authorization header.\n";
     }
     close(sockfd);
+    std::cout << std::flush;
 }
 
 void get_book(std::string &token, int &library_in) {
@@ -325,6 +329,7 @@ void get_book(std::string &token, int &library_in) {
         std:: cout << "No book with " << id << " id was found.\n";
     }
     close(sockfd);
+    std::cout << std::flush;
 
 }
 
@@ -348,6 +353,15 @@ void add_book(std::string &token, int &library_in) {
     std::cout << "page_count=";
     char page_count[MAX_LEN];
     fgets(page_count, MAX_LEN, stdin);
+
+    if (strlen(title) == 1 ||
+        strlen(author) == 1 ||
+        strlen(genre) == 1 ||
+        strlen(publisher) == 1 ||
+        strlen(page_count) == 1) {
+            std::cout << "All fields must be completed to add book.\n";
+            return;
+        }
 
     title[strlen(title) - 1] = '\0';
     author[strlen(author) - 1] = '\0';
@@ -410,6 +424,7 @@ void add_book(std::string &token, int &library_in) {
         std::cout << "Too many requests, try again.\n";
     }
     close(sockfd);
+    std::cout << std::flush;
 }
 
 void delete_book(std::string &token, int &library_in) {
@@ -449,6 +464,7 @@ void delete_book(std::string &token, int &library_in) {
         std:: cout << "No book with id " << id << " was found.\n";
     }
     close(sockfd);
+    std::cout << std::flush;
 }
 
 void logout(std::string &cookie, std::string &token,
@@ -490,4 +506,5 @@ void logout(std::string &cookie, std::string &token,
         std:: cout << "Too many requests, try again later.\n";
     }
     close(sockfd);
+    std::cout << std::flush;
 }
